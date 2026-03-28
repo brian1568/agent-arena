@@ -5,6 +5,7 @@ const gameOverScreen = document.getElementById('game-over-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const finalScoreEl = document.getElementById('final-score');
 const restartBtn = document.getElementById('restart-btn');
+const aiToggleBtn = document.getElementById('ai-toggle-btn');
 
 // Game constants
 const GRID_SIZE = 20; // 20x20 grid
@@ -24,6 +25,8 @@ let food = { x: 0, y: 0 };
 let score = 0;
 let gameState = 'init'; // init, playing, paused, gameover
 let lastRenderTime = 0;
+let aiMode = false;
+let aiProcessing = false;
 let requestID;
 
 function initGame() {
@@ -72,6 +75,34 @@ function checkCollision(head) {
 
 function update() {
   if (gameState !== 'playing') return;
+
+  if (aiMode && !aiProcessing) {
+    aiProcessing = true;
+    const snapshot = { snake: [...snake], food: { ...food }, direction: { ...direction } };
+    fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshot)
+    })
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        const move_idx = data.action; // 0=straight, 1=right, 2=left
+        const clock_wise = [ {x:1, y:0}, {x:0, y:1}, {x:-1, y:0}, {x:0, y:-1} ];
+        
+        // Use SNAPSHOT direction to derive next turn (Copilot race condition fix)
+        let idx = clock_wise.findIndex(d => d.x === snapshot.direction.x && d.y === snapshot.direction.y);
+        if (idx === -1) idx = 0;
+        
+        if (move_idx === 1) nextDirection = clock_wise[(idx + 1) % 4];
+        else if (move_idx === 2) nextDirection = clock_wise[(idx + 3) % 4];
+        else nextDirection = clock_wise[idx];
+      })
+      .catch(e => console.error('AI fetch failed', e))
+      .finally(() => { aiProcessing = false; });
+  }
 
   direction = nextDirection;
   
@@ -159,6 +190,7 @@ window.addEventListener('keydown', e => {
   }
 
   if (gameState !== 'playing') return;
+  if (aiMode) return; // Ignore direction changes in AI mode
 
   switch (e.key) {
     case 'ArrowUp':
@@ -186,6 +218,13 @@ window.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', () => {
   initGame();
+  canvas.focus();
+});
+
+aiToggleBtn.addEventListener('click', () => {
+  aiMode = !aiMode;
+  aiToggleBtn.innerText = `Toggle AI Mode (${aiMode ? 'On' : 'Off'})`;
+  aiToggleBtn.classList.toggle('ai-btn-on', aiMode);
   canvas.focus();
 });
 
