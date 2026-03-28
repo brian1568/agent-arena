@@ -73,36 +73,29 @@ function checkCollision(head) {
   return false;
 }
 
-async function update() {
+function update() {
   if (gameState !== 'playing') return;
 
   if (aiMode && !aiProcessing) {
     aiProcessing = true;
-    try {
-      const response = await fetch('/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          snake: snake,
-          food: food,
-          direction: direction
-        })
-      });
-      const data = await response.json();
-      const move_idx = data.action; // [straight, right, left]
-      
-      const clock_wise = [ {x:1, y:0}, {x:0, y:1}, {x:-1, y:0}, {x:0, y:-1} ];
-      let idx = clock_wise.findIndex(d => d.x === direction.x && d.y === direction.y);
-      if (idx === -1) idx = 0;
-      
-      if (move_idx === 1) nextDirection = clock_wise[(idx + 1) % 4];
-      else if (move_idx === 2) nextDirection = clock_wise[(idx + 3) % 4];
-      else nextDirection = clock_wise[idx];
-      
-    } catch (e) {
-      console.error("AI fetch failed", e);
-    }
-    aiProcessing = false;
+    const snapshot = { snake: [...snake], food: { ...food }, direction: { ...direction } };
+    fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(snapshot)
+    })
+      .then(response => response.json())
+      .then(data => {
+        const move_idx = data.action; // 0=straight, 1=right, 2=left
+        const clock_wise = [ {x:1, y:0}, {x:0, y:1}, {x:-1, y:0}, {x:0, y:-1} ];
+        let idx = clock_wise.findIndex(d => d.x === direction.x && d.y === direction.y);
+        if (idx === -1) idx = 0;
+        if (move_idx === 1) nextDirection = clock_wise[(idx + 1) % 4];
+        else if (move_idx === 2) nextDirection = clock_wise[(idx + 3) % 4];
+        else nextDirection = clock_wise[idx];
+      })
+      .catch(e => console.error('AI fetch failed', e))
+      .finally(() => { aiProcessing = false; });
   }
 
   direction = nextDirection;

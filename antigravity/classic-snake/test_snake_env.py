@@ -1,5 +1,5 @@
 import pytest
-from snake_env import SnakeGameAI, Direction, Point
+from snake_env import SnakeGameAI, Direction, Point, BLOCK_SIZE
 
 def test_initial_state():
     game = SnakeGameAI(w=400, h=400)
@@ -7,7 +7,7 @@ def test_initial_state():
     assert len(game.snake) == 3
     assert game.direction == Direction.RIGHT
     # Head and 2 body segments
-    assert game.head == Point(game.w / 2, game.h / 2)
+    assert game.head == Point(game.w // 2, game.h // 2)
 
 def test_movement():
     game = SnakeGameAI(w=400, h=400)
@@ -17,14 +17,14 @@ def test_movement():
     action = [1, 0, 0] # Straight
     reward, done, score = game.play_step(action)
     
-    assert game.head.x == start_head.x + 20 # BLOCK_SIZE is 20
+    assert game.head.x == start_head.x + BLOCK_SIZE
     assert not done
 
 def test_collision_wall():
     game = SnakeGameAI(w=400, h=400)
     
     # Force the snake practically to the right wall
-    game.head = Point(400 - 20, 200)
+    game.head = Point(400 - BLOCK_SIZE, 200)
     game.snake[0] = game.head
     
     # Move straight into wall
@@ -39,7 +39,7 @@ def test_food_consumption():
     length_before = len(game.snake)
     
     # Place food directly in front of snake
-    game.food = Point(game.head.x + 20, game.head.y)
+    game.food = Point(game.head.x + BLOCK_SIZE, game.head.y)
     
     action = [1, 0, 0] # Straight
     reward, done, score = game.play_step(action)

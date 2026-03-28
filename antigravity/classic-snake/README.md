@@ -57,5 +57,5 @@ python agent.py
 
 - [ ] **Standard Play**: Arrow keys and WASD still function properly when AI Mode is Off.
 - [ ] **Pause/Resume**: Pressing `Spacebar` pauses the game cleanly.
-- [ ] **AI Inference**: Clicking "Toggle AI Mode" causes the Javascript client to drop keyboard inputs and fetch `/predict`.
+- [ ] **AI Inference**: Clicking "Toggle AI Mode" hands control of movement to the AI; the JS client still captures keyboard input, but the snake's direction is driven by `/predict` responses instead of manual key presses.
 - [ ] **Python TDD**: Running `pytest` successfully passes all core collision and boundary constraints natively in Python.

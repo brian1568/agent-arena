@@ -2,7 +2,7 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from snake_env import SnakeGameAI, Direction, Point
+from snake_env import SnakeGameAI, Direction, Point, BLOCK_SIZE
 from model import Linear_QNet, QTrainer
 
 MAX_MEMORY = 100_000
@@ -20,18 +20,19 @@ class Agent:
         
         # Preload model if exists
         try:
-            self.model.load_state_dict(torch.load('./model/model.pth'))
+            state_dict = torch.load('./model/model.pth', map_location="cpu", weights_only=True)
+            self.model.load_state_dict(state_dict)
             self.model.eval()
             print("Loaded pretrained model")
-        except:
+        except (FileNotFoundError, RuntimeError, OSError):
             print("Creating new model")
 
     def get_state(self, game):
         head = game.snake[0]
-        point_l = Point(head.x - 20, head.y)
-        point_r = Point(head.x + 20, head.y)
-        point_u = Point(head.x, head.y - 20)
-        point_d = Point(head.x, head.y + 20)
+        point_l = Point(head.x - BLOCK_SIZE, head.y)
+        point_r = Point(head.x + BLOCK_SIZE, head.y)
+        point_u = Point(head.x, head.y - BLOCK_SIZE)
+        point_d = Point(head.x, head.y + BLOCK_SIZE)
         
         dir_l = game.direction == Direction.LEFT
         dir_r = game.direction == Direction.RIGHT

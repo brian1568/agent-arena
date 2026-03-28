@@ -1,14 +1,10 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import torch
-import numpy as np
-import os
 
-from model import Linear_QNet
 from agent import Agent
-from snake_env import SnakeGameAI, Direction, Point
+from snake_env import SnakeGameAI, Direction, Point, BLOCK_SIZE
 
 app = FastAPI()
 
@@ -26,12 +22,13 @@ class GameState(BaseModel):
 agent_brain = Agent()
 
 @app.post("/predict")
+@torch.inference_mode()
 def predict_move(game_state: GameState):
     # Map JS state to Python dummy game instance
     dummy_game = SnakeGameAI(w=400, h=400)
     
-    # Scale JS block indices (0-19) to pixel coords (0-380)
-    js_scale = 20
+    # Scale JS block indices (0-19) to pixel coords dynamically
+    js_scale = BLOCK_SIZE
     dummy_game.snake = [Point(p.x * js_scale, p.y * js_scale) for p in game_state.snake]
     dummy_game.head = dummy_game.snake[0]
     dummy_game.food = Point(game_state.food.x * js_scale, game_state.food.y * js_scale)
@@ -52,4 +49,4 @@ def predict_move(game_state: GameState):
     return {"action": move_idx}
 
 # Serve static files for frontend (including index.html at root)
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
