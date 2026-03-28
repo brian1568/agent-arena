@@ -84,12 +84,18 @@ function update() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(snapshot)
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
       .then(data => {
         const move_idx = data.action; // 0=straight, 1=right, 2=left
         const clock_wise = [ {x:1, y:0}, {x:0, y:1}, {x:-1, y:0}, {x:0, y:-1} ];
-        let idx = clock_wise.findIndex(d => d.x === direction.x && d.y === direction.y);
+        
+        // Use SNAPSHOT direction to derive next turn (Copilot race condition fix)
+        let idx = clock_wise.findIndex(d => d.x === snapshot.direction.x && d.y === snapshot.direction.y);
         if (idx === -1) idx = 0;
+        
         if (move_idx === 1) nextDirection = clock_wise[(idx + 1) % 4];
         else if (move_idx === 2) nextDirection = clock_wise[(idx + 3) % 4];
         else nextDirection = clock_wise[idx];
@@ -184,6 +190,7 @@ window.addEventListener('keydown', e => {
   }
 
   if (gameState !== 'playing') return;
+  if (aiMode) return; // Ignore direction changes in AI mode
 
   switch (e.key) {
     case 'ArrowUp':
@@ -217,7 +224,7 @@ restartBtn.addEventListener('click', () => {
 aiToggleBtn.addEventListener('click', () => {
   aiMode = !aiMode;
   aiToggleBtn.innerText = `Toggle AI Mode (${aiMode ? 'On' : 'Off'})`;
-  aiToggleBtn.style.backgroundColor = aiMode ? '#4CAF50' : '#555';
+  aiToggleBtn.classList.toggle('ai-btn-on', aiMode);
   canvas.focus();
 });
 
